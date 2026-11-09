@@ -1,0 +1,7 @@
+{
+  "name": "compose-skill-scripts",
+  "private": true,
+  "type": "module",
+  "description": "compose-skill 作曲 skill 的脚本依赖：verovio（LGPL-3.0，乐谱排版引擎）",
+  "dependencies": { "verovio": "^6.4.0" }
+}

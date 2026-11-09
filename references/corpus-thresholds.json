@@ -1,0 +1,67 @@
+{
+ "_说明": "由 scripts/corpus_stats.mjs 从公有领域曲谱库量出来；刺耳率上限取第 75 百分位，大跳 / 跨度上限取第 90 百分位，级进 / 跨度下限取第 10 百分位；median 是中位数，给人看的",
+ "source": "library",
+ "measured": "2026-11-06",
+ "eras": {
+  "巴洛克": {
+   "n": 473,
+   "harsh": 0.231,
+   "harshP90": 0.533,
+   "leap": 0.167,
+   "step": 0.346,
+   "spanLo": 15,
+   "spanHi": 31,
+   "median": {
+    "harsh": 0.146,
+    "leap": 0.086,
+    "step": 0.559,
+    "span": 24
+   }
+  },
+  "古典": {
+   "n": 127,
+   "harsh": 0.227,
+   "harshP90": 0.344,
+   "leap": 0.199,
+   "step": 0.273,
+   "spanLo": 17,
+   "spanHi": 46,
+   "median": {
+    "harsh": 0.16,
+    "leap": 0.082,
+    "step": 0.478,
+    "span": 32
+   }
+  },
+  "浪漫": {
+   "n": 196,
+   "harsh": 0.25,
+   "harshP90": 0.32,
+   "leap": 0.212,
+   "step": 0.174,
+   "spanLo": 13,
+   "spanHi": 49,
+   "median": {
+    "harsh": 0.155,
+    "leap": 0.085,
+    "step": 0.427,
+    "span": 25
+   }
+  },
+  "印象派": {
+   "n": 16,
+   "harsh": 0.412,
+   "harshP90": 0.435,
+   "leap": 0.298,
+   "step": 0.198,
+   "spanLo": 20,
+   "spanHi": 51,
+   "median": {
+    "harsh": 0.276,
+    "leap": 0.111,
+    "step": 0.31,
+    "span": 37
+   }
+  }
+ }
+}

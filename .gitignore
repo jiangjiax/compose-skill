@@ -1,0 +1,7 @@
+node_modules/
+.DS_Store
+*.m4a
+*.wav
+*.mp4
+__pycache__/
+references/calibration/*.mid
