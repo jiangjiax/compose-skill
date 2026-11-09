@@ -5,7 +5,7 @@ description: This skill should be used when the user wants to compose or generat
 
 # compose-skill · 作曲
 
-> A Claude Code skill that composes music with rule-based recipes + random seeds (no LLM in the loop), checks each piece with an 11-item "inner ear" score audit, and keeps the **first piece that passes** instead of the highest-scoring one. Outputs audio, per-instrument stems, staff notation, numbered notation (jianpu), MIDI and an animated score video. macOS only (uses the built-in CoreAudio GM sounds).
+> A Claude Code skill that composes music with rule-based recipes + random seeds (no LLM in the loop), checks each piece with an 11-item "inner ear" score audit, and uses a **randomness knob** to pick: `low` (default) keeps the highest-scoring piece, `high` adds deliberate surprises (deceptive cadence, suspension, Picardy third). Outputs audio, per-instrument stems, staff notation, numbered notation (jianpu), MIDI and an animated score video. macOS only (uses the built-in CoreAudio GM sounds).
 
 用「规则配方 + 随机种子」写曲子，出音频、分轨、五线谱、简谱、MIDI 和动态曲谱视频；用「内心听觉」自检代替耳朵把关；生成后可以换乐器、调音量、改速度、移调、导入改过的 MIDI。
 
@@ -38,7 +38,7 @@ description: This skill should be used when the user wants to compose or generat
 ```bash
 cd .claude/skills/compose-skill/scripts
 node compose.mjs --list                  # 经典配方、组合预设、各维度可选值、乐器
-node compose.mjs <作品目录>/card.json      # 按卡生成：写 tries 首，挑第一首过线的（没有不及格项）；卡里写 "ab": true 出候选 A / B 两首给用户盲听
+node compose.mjs <作品目录>/card.json      # 按卡生成：写 tries 首，按「随机性」挑（默认低：过线里取自检分最高的）；卡里写 "ab": true 出候选 A / B 两首给用户盲听
 python3 snapshot.py <作品目录>             # 五线谱、简谱截成 PNG
 python3 score_video.py <作品目录>          # 动态曲谱视频；没截完会提示，反复运行直到打印「完成」
 python3 score_video.py <作品目录> --jianpu # 动态简谱视频（数字滚动、响到的变红；只对出了简谱的声部有效，写 动态简谱.mp4）
@@ -54,7 +54,11 @@ python3 score_video.py <作品目录> --jianpu # 动态简谱视频（数字滚�
 
 1. 读 `内心听觉自检.md`。有 ✗ 的先处理：换种子、加大 `tries`、换乐器、静音声部、挪调。每项的含义和阈值见 `references/inner-ear.md`。巴洛克 / 古典 / 浪漫的阈值是从公有领域曲谱库量出来的（`references/corpus-thresholds.json`），不是教材数字。
    - **改了自检规则或阈值，先跑校准**：`node calibrate.mjs`，四首真名曲（巴赫两首、莫扎特、肖邦）任何一项被判不及格就是规则在冤枉人，先修规则。重量阈值：`node corpus_stats.mjs <MIDI 目录> <scores.json>`。
-   - **自检分不用来挑「最好」**：分数只抓错，分最高的往往一次意外都没有、最平淡。过线即可，好不好听交给人耳；用户愿意的话出 `ab` 两首，让他盲听挑，把选择记进 `盲听.md`，这是这台程序唯一来自人耳的品味数据。
+   - **随机性旋钮（`randomness`）**：体检分只抓错。满分那首往往最工整、也好听，只是最好猜；想要意外就把随机性调高。用户说「随机性高一点 / 多一点意外 / 别那么规整」→ `"randomness": "high"`；「稳一点 / 工整 / 随机性低一点」或没提 → 默认 `low`。
+     - `low`（默认）：过线的里取自检分最高的（同分取种子靠前）。
+     - `mid`：按种子顺序取第一首过线的，并打开假终止。
+     - `high`：组合配方自动打开全部「故意的意外」（假终止、挂留、皮卡迪三度；卡里自己写了 `dims.surprise` 就以卡为准），在听众有预期的地方偏一下，再取意外真正生效最多的那首。经典配方（`style`）没有意外维度，随机性只影响挑哪一首，要真正加意外用组合配方。
+     - 好不好听最后交给人耳：用户愿意的话出 `ab` 两首盲听，把选择记进 `盲听.md`。
 2. 开一个全新上下文的子 agent 当独立评审，只给五线谱 PNG、简谱 PNG 和自检表，提示词见 `references/critic.md`。最多两轮；评审分数只是停止信号。
 
 ### 4 · 交付

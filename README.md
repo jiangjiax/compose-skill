@@ -1,14 +1,26 @@
 # compose-skill
 
-一个给 Claude Code 用的作曲 skill：用「规则配方 + 随机种子」写曲子，不调用大模型；每首做 11 项「内心听觉」乐谱体检，**挑第一首及格的，而不是分数最高的**。出音频、分轨、五线谱、简谱、MIDI 和动态曲谱视频，生成后还能换乐器、调音量、改速度、移调。
+一个给 Claude Code 用的作曲 skill：用「规则配方 + 随机种子」写曲子，不调用大模型；每首做 11 项「内心听觉」乐谱体检，再用一个**随机性旋钮**决定挑哪一首：调低要工整，调高要意外。出音频、分轨、五线谱、简谱、MIDI 和动态曲谱视频，生成后还能换乐器、调音量、改速度、移调。
 
-A Claude Code skill that composes music from rule-based recipes and random seeds — no LLM in the loop. Every piece goes through an 11-item score audit, and the skill keeps **the first piece that passes, not the highest-scoring one**. Outputs audio, per-instrument stems, staff notation, numbered notation (jianpu), MIDI and an animated score video, and lets you swap instruments, change volume, tempo or key afterwards.
+A Claude Code skill that composes music from rule-based recipes and random seeds — no LLM in the loop. Every piece goes through an 11-item score audit, and a **randomness knob** decides which one to keep: low for tidy, high for surprises. Outputs audio, per-instrument stems, staff notation, numbered notation (jianpu), MIDI and an animated score video, and lets you swap instruments, change volume, tempo or key afterwards.
 
-## 为什么挑「第一首及格的」 / Why "first passing", not "highest score"
+## 随机性旋钮 / The randomness knob
 
-体检全是「不许」：不许平行五度、不许乱跳、结尾要回主音……分数只能抓错。实际听下来，分最高的往往是一次意外都没有的那首，最平淡。所以过线即可，好不好听交给人的耳朵；需要时可以出 A / B 两首盲听。
+体检全是「不许」：不许平行五度、不许乱跳、结尾要回主音……分数只能抓错，抓不到意外。满分那首往往最工整、也好听，只是最好猜。所以作曲卡里有一个 `randomness`：
 
-The audit is a list of prohibitions, so the score only catches mistakes. In practice the top-scoring piece is usually the one with no surprises at all — the flattest. So the skill stops at "passes" and leaves taste to human ears (optionally an A/B blind pick).
+- `low`（默认）：过线的里挑分最高的，工整、好听。
+- `mid`：按种子顺序取第一首过线的，并加一个假终止。
+- `high`：打开「故意的意外」（假终止、挂留、皮卡迪三度），在听众已经有预期的地方偏一下，比如该落回主和弦时拐进六级和弦。
+
+哪一首更打动人，分数说了不算，最后交给人的耳朵；需要时可以出 A / B 两首盲听。
+
+The audit is a list of prohibitions, so the score catches mistakes but not surprise. The top-scoring piece is usually the tidiest and pleasant, just predictable. Set `randomness` in the card:
+
+- `low` (default): the highest-scoring passing piece.
+- `mid`: the first passing piece by seed, with a deceptive cadence.
+- `high`: turns on deliberate surprises (deceptive cadence, suspension, Picardy third) where the listener already expects something, then keeps the piece where they actually took effect.
+
+Taste is still left to human ears (optionally an A/B blind pick).
 
 ## 安装 / Install
 

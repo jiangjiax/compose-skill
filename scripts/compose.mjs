@@ -74,13 +74,33 @@ if (card0.versions?.length) {
 console.log(JSON.stringify(results.length === 1 ? results[0] : results, null, 1));
 
 function base0(card) { if (card.seed != null) return card.seed; if (!SEED.has(card)) SEED.set(card, Math.floor(Math.random() * 99999) + 1); return SEED.get(card); }
+// 随机性旋钮：low（默认）/ mid / high，也接受 0–1 的数（<0.34 低，<0.67 中，其余高）
+function randomnessLevel(r) {
+  if (r == null || r === '') return 'low';
+  if (typeof r === 'number') return r < 0.34 ? 'low' : r < 0.67 ? 'mid' : 'high';
+  const t = String(r).toLowerCase();
+  if (['high', 'hi', '高', '偏高', '高一点'].includes(t)) return 'high';
+  if (['mid', 'medium', '中', '适中'].includes(t)) return 'mid';
+  if (['low', 'lo', '低', '偏低', '低一点'].includes(t)) return 'low';
+  throw new Error(`randomness 只认 low / mid / high（或 0–1 的数）：${r}`);
+}
+function randSurprise(level) { return { low: [], mid: ['deceptive'], high: ['deceptive', 'suspension', 'picardy'] }[level]; }
+function surpriseCount(piece) {
+  const st = (piece.steps || []).find(x => typeof x === 'string' && x.startsWith('故意的意外'));
+  if (!st || st.includes('没有生效')) return 0;
+  return st.split('：').slice(1).join('：').split('；').filter(Boolean).length;
+}
 async function composeOne(card, out, { motifSeed }) {
   fs.mkdirSync(out, { recursive: true });
+  const RAND = randomnessLevel(card.randomness);
+  // 随机性调高：组合配方自动打开「故意的意外」（作曲卡自己写了 dims.surprise 就以卡为准）
+  if ((card.preset || card.dims || card.ensemble) && RAND !== 'low' && card.dims?.surprise == null) card = { ...card, dims: { ...(card.dims || {}), surprise: randSurprise(RAND) } };
   setSoundMode(card.sound || 'best');
   const dimsMode = !!(card.preset || card.dims || card.ensemble);
   const style = dimsMode ? null : STYLES.find(s => s.id === card.style);
   if (!dimsMode && !style) throw new Error(`没有这个风格：${card.style}。用 --list 查看（经典配方写 "style"，组合预设写 "preset"）`);
   const warnings = [];
+  if (!dimsMode && RAND !== 'low') warnings.push(`经典配方（style）没有「故意的意外」维度，随机性${RAND === 'high' ? '高' : '中'}只改变挑哪一首；要真正加意外，用组合配方（preset / dims）`);
 
   // ---- 声部与乐器 ----
   let roleDefs, probeNotes = null;
@@ -114,11 +134,24 @@ async function composeOne(card, out, { motifSeed }) {
   }
   const base = base0(card), tries = Math.max(1, card.tries ?? 8);
   const cands = []; for (let i = 0; i < tries; i++) cands.push(prepare(base + i));
-  // 2026-11-06 改：不再按自检分挑最高的（分数只抓错，最高分往往是一次意外都没有的那首，最平淡）。
-  // 没有不及格项 = 过线；过线的按种子顺序取第一首。abPick = 1 取第二首过线的（盲听用的候选 B）。全都不过线才退回取分最高的。
+  // 2026-11-09 改：按「随机性」旋钮挑（取代 11-06 的「挑第一首过线的」）。
+  // 体检分只抓错：没有不及格项 = 过线。满分不等于难听，它往往最工整、也好听，只是最好猜；
+  // 想要意外，交给随机性旋钮：调高时组合配方会打开「故意的意外」（假终止 / 挂留 / 皮卡迪三度），在听众有预期的地方偏一下。
+  // low（默认）：过线的里取分最高的（同分取种子靠前），即「满分曲」。
+  // mid：过线的按种子顺序取第一首。
+  // high：过线的里取意外真正生效最多的那首（同样多取种子靠前）。
+  // 全都不过线才退回取分最高的。abPick（盲听）照旧：取第 abPick+1 首过线的。
   const passed = cands.filter(c => !c.audit.items.some(x => x.level === 'fail'));
-  const best = passed[card.abPick || 0] || (card.abPick ? cands.find(c => c !== passed[0]) : null) || passed[0] || cands.slice().sort((a, b) => b.audit.score - a.audit.score)[0], { piece, key } = best;
-  const pickNote = passed.length ? `${tries} 首里有 ${passed.length} 首没有不及格项（过线）；过线的不再比分数，按种子顺序取${card.abPick ? `第 ${card.abPick + 1} 首（盲听候选 ${'AB'[card.abPick] || card.abPick + 1}）` : '第一首'}` : `${tries} 首都有不及格项，只好取自检分最高的一首`;
+  const bySeed = (a, b) => a.seed - b.seed;
+  const ranked = RAND === 'low' ? passed.slice().sort((a, b) => b.audit.score - a.audit.score || bySeed(a, b))
+    : RAND === 'high' ? passed.slice().sort((a, b) => surpriseCount(b.piece) - surpriseCount(a.piece) || bySeed(a, b))
+    : passed.slice();
+  const best = (card.abPick != null ? passed[card.abPick] || cands.find(c => c !== passed[0]) : ranked[0]) || cands.slice().sort((a, b) => b.audit.score - a.audit.score || bySeed(a, b))[0], { piece, key } = best;
+  const RAND_ZH = { low: '低', mid: '中', high: '高' }[RAND];
+  const pickNote = passed.length
+    ? (card.abPick != null ? `${tries} 首里有 ${passed.length} 首过线；盲听模式取第 ${card.abPick + 1} 首过线的（候选 ${'AB'[card.abPick] || card.abPick + 1}）`
+      : `${tries} 首里有 ${passed.length} 首没有不及格项（过线）；随机性${RAND_ZH}：` + (RAND === 'low' ? `取过线里自检分最高的（${best.audit.score} 分，种子 ${best.seed}）` : RAND === 'high' ? `取过线里「故意的意外」真正生效最多的（${surpriseCount(best.piece)} 处，种子 ${best.seed}）` : `按种子顺序取第一首过线的（种子 ${best.seed}）`))
+    : `${tries} 首都有不及格项，只好取自检分最高的一首`;
 
   // ---- 2 · 时间：拍 → 秒 ----
   const speed = !dimsMode && card.bpm ? card.bpm / piece.bpm : 1;
